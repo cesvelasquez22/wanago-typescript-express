@@ -1,17 +1,11 @@
-import express, {Request, Response, NextFunction} from 'express';
-
-function loggerMiddleware(request: Request, response: Response, next: NextFunction) {
-    console.log(`${request.method} ${request.path}`);
-    next();
-}
-
-const app = express();
-
-app.use(loggerMiddleware);
+import App from './app';
+import PostsController from './posts/posts.controller';
  
-app.get('/hello', (request, response) => {
-  response.send('Hello world!');
-});
+const app = new App(
+  [
+    new PostsController(),
+  ],
+  5001,
+);
  
-app.listen(5001);
-console.log('Server running on http://localhost:5001');
+app.listen();

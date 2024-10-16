@@ -1,15 +1,17 @@
 {
   "name": "wanago-typescript-express",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "ts-node-dev ./src/server.ts"
+    "dev": "ts-node-dev ./src/server.ts",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "body-parser": "^1.20.3",
     "express": "^4.21.1",
     "ts-node": "^10.9.2"
   },
