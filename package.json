@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "dev": "ts-node-dev ./src/server.ts",
+    "dev": "ts-node-dev ./src/server.ts --env-file .env",
     "build": "tsc"
   },
   "keywords": [],
@@ -12,7 +12,9 @@
   "description": "",
   "dependencies": {
     "body-parser": "^1.20.3",
+    "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "mongoose": "^8.7.2",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
