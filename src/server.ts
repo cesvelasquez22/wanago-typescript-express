@@ -3,9 +3,8 @@ import PostsController from './posts/posts.controller';
 
 import 'dotenv/config';
 import config from './config';
-const {MONGO_URI, PORT} = config;
+const {PORT} = config;
 
-import mongoose from 'mongoose';
  
 const app = new App(
   [
@@ -13,7 +12,5 @@ const app = new App(
   ],
   PORT || 5000,
 );
-
-mongoose.connect(MONGO_URI);
  
 app.listen();

@@ -3,6 +3,11 @@ import express, { Application } from 'express';
 import bodyParser from 'body-parser';
 import Controller from './types/controller';
 
+import config from './config';
+const {MONGO_URI, PORT} = config;
+
+import mongoose from 'mongoose';
+
 class App {
   public app: Application;
   public port: number;
@@ -11,6 +16,7 @@ class App {
     this.app = express();
     this.port = port;
  
+    this.connectToDatabase();
     this.initializeMiddlewares();
     this.initializeControllers(controllers);
   }
@@ -23,6 +29,10 @@ class App {
     controllers.forEach((controller) => {
       this.app.use('/api', controller.router);
     });
+  }
+
+  private connectToDatabase() {
+    mongoose.connect(MONGO_URI);
   }
  
   public listen() {
