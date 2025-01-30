@@ -4,7 +4,7 @@ import bodyParser from 'body-parser';
 import Controller from './types/controller';
 
 import config from './config';
-const {MONGO_URI, PORT} = config;
+const {MONGO_URI, HOST} = config;
 
 import mongoose from 'mongoose';
 
@@ -37,7 +37,7 @@ class App {
  
   public listen() {
     this.app.listen(this.port, () => {
-      console.log(`App listening on the port ${this.port}`);
+      console.log(`App listening on the port ${HOST}/${this.port}`);
     });
   }
 }
