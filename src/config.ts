@@ -13,6 +13,7 @@ interface ENV {
   HOST: string | undefined;
   PORT: number | undefined;
   MONGO_URI: string | undefined;
+  JWT_SECRET: string | undefined;
 }
 
 interface Config {
@@ -20,6 +21,7 @@ interface Config {
   HOST: string;
   PORT: number;
   MONGO_URI: string;
+  JWT_SECRET: string;
 }
 
 // Loading process.env as ENV interface
@@ -29,7 +31,8 @@ const getConfig = (): ENV => {
     NODE_ENV: process.env.NODE_ENV,
     HOST: process.env.HOST,
     PORT: process.env.PORT ? Number(process.env.PORT) : undefined,
-    MONGO_URI: process.env.MONGO_URI
+    MONGO_URI: process.env.MONGO_URI,
+    JWT_SECRET: process.env.JWT_SECRET,
   };
 };
 

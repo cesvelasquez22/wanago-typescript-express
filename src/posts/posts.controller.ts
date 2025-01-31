@@ -2,7 +2,7 @@ import { NextFunction, Request, Response, Router } from 'express';
 import {isValidObjectId} from 'mongoose';
 
 import Post from './post.interface';
-import Controller from '../types/controller';
+import Controller from '../interfaces/controller.interface';
 
 import postModel from './post.model';
 import NotFoundException from '../exceptions/NotFoundException';

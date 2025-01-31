@@ -1,6 +1,6 @@
 import express, { Application } from "express";
 import bodyParser from "body-parser";
-import Controller from "./types/controller";
+import Controller from "./interfaces/controller.interface";
 
 import config from "./config";
 const { MONGO_URI, HOST } = config;
