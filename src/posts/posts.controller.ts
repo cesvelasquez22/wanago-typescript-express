@@ -7,6 +7,8 @@ import Controller from '../types/controller';
 import postModel from './post.entity';
 import NotFoundException from '../exceptions/NotFoundException';
 import InvalidObjectIdException from '../exceptions/InvalidObjectIdException';
+import validationMiddleware from '../middleware/validation.middleware';
+import CreatePostDto from './post.dto';
 
 class PostsController implements Controller {
   public path = '/posts';
@@ -19,9 +21,9 @@ class PostsController implements Controller {
  
   public initializeRoutes() {
     this.router.get(this.path, this.getAllPosts);
-    this.router.post(this.path, this.createAPost);
+    this.router.post(this.path, validationMiddleware(CreatePostDto), this.createAPost);
     this.router.get(`${this.path}/:id`, this.getPostById);
-    this.router.patch(`${this.path}/:id`, this.modifyPost);
+    this.router.patch(`${this.path}/:id`, validationMiddleware(CreatePostDto, { skipMissingProperties: true }),this.modifyPost);
     this.router.delete(`${this.path}/:id`, this.deletePost);
   }
  
