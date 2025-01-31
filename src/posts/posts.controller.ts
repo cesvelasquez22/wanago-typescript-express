@@ -1,20 +1,17 @@
-import { Request, Response, Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
+import {isValidObjectId} from 'mongoose';
+
 import Post from './post.interface';
 import Controller from '../types/controller';
 
 import postModel from './post.entity';
+import NotFoundException from '../exceptions/NotFoundException';
+import InvalidObjectIdException from '../exceptions/InvalidObjectIdException';
 
 class PostsController implements Controller {
   public path = '/posts';
   public router = Router();
- 
-  private posts: Post[] = [
-    {
-      author: 'Marcin',
-      content: 'Dolor sit amet',
-      title: 'Lorem Ipsum',
-    }
-  ];
+  private post = postModel;
  
   constructor() {
     this.initializeRoutes();
@@ -29,7 +26,7 @@ class PostsController implements Controller {
   }
  
   getAllPosts = (request: Request, response: Response) => {
-    postModel.find().then(posts => {
+    this.post.find().then(posts => {
       response.send(posts);
     });
   }
@@ -42,29 +39,49 @@ class PostsController implements Controller {
     });
   }
 
-  getPostById = (request: Request, response: Response) => {
+  getPostById = (request: Request, response: Response, next: NextFunction) => {
     const id = request.params.id;
-    postModel.findById(id).then(post => {
-      response.send(post);
+    if (!isValidObjectId(id)) {
+      next(new InvalidObjectIdException(id));
+      return;
+    }
+    this.post.findById(id).then((post) => {
+      if (post) {
+        response.send(post);
+      } else {
+        next(new NotFoundException(id));
+      }
     });
   }
 
-  modifyPost = (request: Request, response: Response) => {
+  modifyPost = (request: Request, response: Response, next: NextFunction) => {
     const id = request.params.id;
+    if (!isValidObjectId(id)) {
+      next(new InvalidObjectIdException(id));
+      return;
+    }
     const postData: Post = request.body;
-    postModel.findByIdAndUpdate(id, postData, { new: true })
+    this.post.findByIdAndUpdate(id, postData, { new: true })
       .then(updatedPost => {
-        response.send(updatedPost);
+        if (updatedPost) {
+          response.send(updatedPost);
+        } else {
+          next(new NotFoundException(id));
+        }
       });
     }
 
-  deletePost = (request: Request, response: Response) => {
+  deletePost = (request: Request, response: Response, next: NextFunction) => {
     const id = request.params.id;
-    postModel.findByIdAndDelete(id).then(hasDeleted => {
+    if (!isValidObjectId(id)) {
+      next(new InvalidObjectIdException(id));
+      return;
+    }
+    this.post.findByIdAndDelete(id).then(hasDeleted => {
       if (hasDeleted) {
         response.sendStatus(200);
       } else {
-        response.sendStatus(404);
+        next(new NotFoundException(id));
       }
     });
   }
