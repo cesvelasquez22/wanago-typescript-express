@@ -4,7 +4,7 @@ import {isValidObjectId} from 'mongoose';
 import Post from './post.interface';
 import Controller from '../types/controller';
 
-import postModel from './post.entity';
+import postModel from './post.model';
 import NotFoundException from '../exceptions/NotFoundException';
 import InvalidObjectIdException from '../exceptions/InvalidObjectIdException';
 import validationMiddleware from '../middleware/validation.middleware';
@@ -37,7 +37,7 @@ class PostsController implements Controller {
     const post: Post = request.body;
     const createdPost = new postModel(post);
     createdPost.save().then(savedPost => {
-      response.send(savedPost);
+      response.status(201).send(savedPost);
     });
   }
 
