@@ -14,6 +14,7 @@ import { DataStoredInToken, TokenData } from "../interfaces/token.interface";
 import User from "../users/user.interface";
 
 import config from "../config";
+import blacklistModel from "./blacklist.model";
 const { JWT_SECRET } = config;
 
 class AuthenticationController implements Controller {
@@ -21,6 +22,7 @@ class AuthenticationController implements Controller {
     public router = Router();
 
     private user = userModel;
+    private blacklist = blacklistModel;
 
     constructor() {
         this.initializeRoutes();
@@ -29,6 +31,7 @@ class AuthenticationController implements Controller {
     public initializeRoutes() {
         this.router.post(`${this.path}/register`, validationMiddleware(CreateUserDto), this.registration);
         this.router.post(`${this.path}/login`, validationMiddleware(LogInDto), this.loggingIn);
+        this.router.post(`${this.path}/logout`, this.loggingOut);
     }
 
     private registration = async (request: Request, response: Response, next: NextFunction) => {
@@ -44,7 +47,12 @@ class AuthenticationController implements Controller {
             });
             user.password = undefined;
             const tokenData = this.createToken(user);
-            response.setHeader('Set-Cookie', [this.createCookie(tokenData)]);
+            response.cookie('Authorization', tokenData.token, {
+                maxAge: tokenData.expiresIn * 1000, // would expire after 1 hour
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'none',
+            });
             response.status(201).send(user);
         }
     }
@@ -57,7 +65,12 @@ class AuthenticationController implements Controller {
             if (isPasswordMatching) {
                 user.password = undefined;
                 const tokenData = this.createToken(user);
-                response.setHeader('Set-Cookie', [this.createCookie(tokenData)]);
+                response.cookie('Authorization', tokenData.token, {
+                    maxAge: tokenData.expiresIn * 1000, // would expire after 1 hour
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'none',
+                });
                 response.send(user);
             } else {
                 next(new WrongCredentialsException());
@@ -65,6 +78,24 @@ class AuthenticationController implements Controller {
         } else {
             next(new WrongCredentialsException());
         }
+    }
+
+    private loggingOut = async (request: Request, response: Response, next: NextFunction) => {
+        const token = request.cookies.Authorization;
+        if (!token) {
+            response.sendStatus(204);
+            return;
+        }
+        const exists = await this.blacklist.findOne({ token });
+        if (exists) {
+            response.sendStatus(204)
+            return;
+        }
+        const newBlacklist = new this.blacklist({ token });
+        await newBlacklist.save();
+        response.setHeader('Clear-Site-Data', '"cookies"');
+
+        response.sendStatus(200);
     }
 
     private createToken(user: User): TokenData {
@@ -77,10 +108,6 @@ class AuthenticationController implements Controller {
             expiresIn,
             token: jwt.sign(dataStoredInToken, secret, { expiresIn }),
         };
-    }
-
-    private createCookie(tokenData: TokenData) {
-        return `Authorization=${tokenData.token}; HttpOnly; Max-Age=${tokenData.expiresIn};`;
     }
 }
 
