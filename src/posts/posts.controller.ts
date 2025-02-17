@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response, Router } from 'express';
+import { IRouterMatcher, NextFunction, Request, Response, Router } from 'express';
 import {isValidObjectId} from 'mongoose';
 
 import Post from './post.interface';
@@ -9,6 +9,9 @@ import NotFoundException from '../exceptions/NotFoundException';
 import InvalidObjectIdException from '../exceptions/InvalidObjectIdException';
 import validationMiddleware from '../middleware/validation.middleware';
 import CreatePostDto from './post.dto';
+import authMiddleware from '../middleware/auth.middleware';
+import RequestWithUser from 'interfaces/requestWithUser.interface';
+import RequestHandlerWithUser from 'interfaces/requestHandlerWithUser.interface';
 
 class PostsController implements Controller {
   public path = '/posts';
@@ -19,12 +22,14 @@ class PostsController implements Controller {
     this.initializeRoutes();
   }
  
-  public initializeRoutes() {
+  public async initializeRoutes() {
     this.router.get(this.path, this.getAllPosts);
-    this.router.post(this.path, validationMiddleware(CreatePostDto), this.createAPost);
     this.router.get(`${this.path}/:id`, this.getPostById);
-    this.router.patch(`${this.path}/:id`, validationMiddleware(CreatePostDto, { skipMissingProperties: true }),this.modifyPost);
-    this.router.delete(`${this.path}/:id`, this.deletePost);
+
+    this.router.all(`${this.path}/*`, authMiddleware)
+               .patch(`${this.path}/:id`, authMiddleware, validationMiddleware(CreatePostDto, { skipMissingProperties: true }), this.modifyPost)
+               .delete(`${this.path}/:id`, authMiddleware, this.deletePost)
+               .post(this.path, authMiddleware, validationMiddleware(CreatePostDto), this.createPost);
   }
  
   getAllPosts = (request: Request, response: Response) => {
@@ -33,12 +38,17 @@ class PostsController implements Controller {
     });
   }
  
-  createAPost = (request: Request, response: Response) => {
-    const post: Post = request.body;
-    const createdPost = new postModel(post);
-    createdPost.save().then(savedPost => {
-      response.status(201).send(savedPost);
+  createPost = async (request: RequestWithUser, response: Response, next: NextFunction) => {
+    const postData: Post = request.body;
+    const createdPost = new this.post({
+      ...postData,
+      authorId: request.user?._id,
     });
+    const savedPost = await createdPost.save();
+    response.status(201).send(savedPost);
+    // createdPost.save().then(savedPost => {
+    //   response.status(201).send(savedPost);
+    // });
   }
 
   getPostById = (request: Request, response: Response, next: NextFunction) => {

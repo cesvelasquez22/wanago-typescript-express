@@ -1,3 +1,5 @@
+import { JwtPayload } from "jsonwebtoken";
+
 interface TokenData {
   token: string;
   expiresIn: number;

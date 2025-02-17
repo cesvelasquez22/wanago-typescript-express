@@ -109,7 +109,7 @@
   },
   "include": [
     "src/**/*.ts"
-  ],
+, "src/express.d.ts"  ],
   "exclude": [
     "node_modules"
   ]

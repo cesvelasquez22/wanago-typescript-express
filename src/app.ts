@@ -1,4 +1,6 @@
 import express, { Application } from "express";
+
+import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 import Controller from "./interfaces/controller.interface";
 
@@ -24,6 +26,7 @@ class App {
 
   private initializeMiddlewares() {
     this.app.use(bodyParser.json());
+    this.app.use(cookieParser());
   }
 
   private initializeErrorHandling() {
