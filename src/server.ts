@@ -1,16 +1,19 @@
 import App from './app';
-import PostsController from './posts/posts.controller';
 
 import 'dotenv/config';
 import config from './config';
-import AuthenticationController from './authentication/authentication.controller';
+
 const {PORT} = config;
 
- 
+import PostsController from './posts/posts.controller';
+import AuthenticationController from './authentication/authentication.controller';
+import UserController from './users/user.controller';
+
 const app = new App(
   [
     new AuthenticationController(),
-    new PostsController(),
+    new UserController(),
+    new PostsController()
   ],
   PORT || 5000,
 );

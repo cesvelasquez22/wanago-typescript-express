@@ -1,4 +1,4 @@
-import { IRouterMatcher, NextFunction, Request, Response, Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import {isValidObjectId} from 'mongoose';
 
 import Post from './post.interface';
@@ -11,7 +11,6 @@ import validationMiddleware from '../middleware/validation.middleware';
 import CreatePostDto from './post.dto';
 import authMiddleware from '../middleware/auth.middleware';
 import RequestWithUser from 'interfaces/requestWithUser.interface';
-import RequestHandlerWithUser from 'interfaces/requestHandlerWithUser.interface';
 
 class PostsController implements Controller {
   public path = '/posts';
@@ -33,7 +32,10 @@ class PostsController implements Controller {
   }
  
   getAllPosts = (request: Request, response: Response) => {
-    this.post.find().then(posts => {
+    this.post.find().populate(
+      'author',
+      '-password'
+    ).then(posts => {
       response.send(posts);
     });
   }
@@ -42,13 +44,11 @@ class PostsController implements Controller {
     const postData: Post = request.body;
     const createdPost = new this.post({
       ...postData,
-      authorId: request.user?._id,
+      author: request.user?._id,
     });
     const savedPost = await createdPost.save();
+    await savedPost.populate('author', '-password');
     response.status(201).send(savedPost);
-    // createdPost.save().then(savedPost => {
-    //   response.status(201).send(savedPost);
-    // });
   }
 
   getPostById = (request: Request, response: Response, next: NextFunction) => {

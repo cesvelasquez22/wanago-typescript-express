@@ -2,8 +2,10 @@ import { Document, Schema, model } from 'mongoose';
 import Post from './post.interface';
 
 const PostSchema = new Schema({
-    author: String,
-    authorId: String,
+    author: {
+        ref: 'User',
+        type: Schema.Types.ObjectId,
+    },
     title: String,
     content: String,
 });
