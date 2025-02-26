@@ -6,6 +6,7 @@ interface User {
     address?: {
       street: string,
       city: string,
+      country: string,
     };
   }
    

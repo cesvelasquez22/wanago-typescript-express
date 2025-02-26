@@ -8,12 +8,14 @@ const {PORT} = config;
 import PostsController from './posts/posts.controller';
 import AuthenticationController from './authentication/authentication.controller';
 import UserController from './users/user.controller';
+import ReportsController from './reports/reports.controller';
 
 const app = new App(
   [
     new AuthenticationController(),
     new UserController(),
-    new PostsController()
+    new PostsController(),
+    new ReportsController()
   ],
   PORT || 5000,
 );

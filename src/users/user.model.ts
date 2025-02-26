@@ -4,6 +4,7 @@ import User from "./user.interface";
 const addressSchema = new Schema({
     city: String,
     street: String,
+    country: String,
 });
 
 const userSchema = new Schema({
