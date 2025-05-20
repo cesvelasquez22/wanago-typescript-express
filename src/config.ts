@@ -12,16 +12,24 @@ interface ENV {
   NODE_ENV: string | undefined;
   HOST: string | undefined;
   PORT: number | undefined;
-  MONGO_URI: string | undefined;
   JWT_SECRET: string | undefined;
+  POSTGRES_HOST: string | undefined;
+  POSTGRES_PORT: string | undefined;
+  POSTGRES_USER: string | undefined;
+  POSTGRES_PASSWORD: string | undefined;
+  POSTGRES_DB: string | undefined;
 }
 
 interface Config {
   NODE_ENV: string;
   HOST: string;
   PORT: number;
-  MONGO_URI: string;
-  JWT_SECRET: string;
+  JWT_SECRET: string | undefined;
+  POSTGRES_HOST: string;
+  POSTGRES_PORT: string;
+  POSTGRES_USER: string;
+  POSTGRES_PASSWORD: string;
+  POSTGRES_DB: string;
 }
 
 // Loading process.env as ENV interface
@@ -31,8 +39,12 @@ const getConfig = (): ENV => {
     NODE_ENV: process.env.NODE_ENV,
     HOST: process.env.HOST,
     PORT: process.env.PORT ? Number(process.env.PORT) : undefined,
-    MONGO_URI: process.env.MONGO_URI,
     JWT_SECRET: process.env.JWT_SECRET,
+    POSTGRES_HOST: process.env.POSTGRES_HOST,
+    POSTGRES_PORT: process.env.POSTGRES_PORT,
+    POSTGRES_USER: process.env.POSTGRES_USER,
+    POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD,
+    POSTGRES_DB: process.env.POSTGRES_DB,
   };
 };
 

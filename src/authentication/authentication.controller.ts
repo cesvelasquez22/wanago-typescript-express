@@ -100,7 +100,7 @@ class AuthenticationController implements Controller {
 
     private createToken(user: User): TokenData {
         const expiresIn = 60 * 60; // an hour
-        const secret = JWT_SECRET;
+        const secret = JWT_SECRET || 'MY_SUPER_SECRET_KEY';
         const dataStoredInToken: DataStoredInToken = {
             _id: user._id,
         };

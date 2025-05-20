@@ -1,22 +1,24 @@
 import express, { Application } from "express";
 
-import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
-import Controller from "./interfaces/controller.interface";
 
 import config from "./config";
-const { MONGO_URI, HOST } = config;
+const { HOST } = config;
 
-import mongoose from "mongoose";
-import errorMiddleware from "./middleware/error.middleware";
+import AppDataSource from "./data-source";
+
+import Controller from "./interfaces/controller.interface";
+import { DataSource } from "typeorm";
 
 class App {
   public app: Application;
   public port: number;
+  public dataSource: DataSource;
 
   constructor(controllers: Controller[], port: number) {
     this.app = express();
     this.port = port;
+    this.dataSource = AppDataSource;
 
     this.connectToDatabase();
     this.initializeMiddlewares();
@@ -24,13 +26,16 @@ class App {
     this.initializeErrorHandling();
   }
 
+  getDataSource() {
+    return this.dataSource;
+  }
+
   private initializeMiddlewares() {
     this.app.use(bodyParser.json());
-    this.app.use(cookieParser());
   }
 
   private initializeErrorHandling() {
-    this.app.use(errorMiddleware);
+    // this.app.use(errorMiddleware);
   }
 
   private initializeControllers(controllers: Controller[]) {
@@ -39,8 +44,14 @@ class App {
     });
   }
 
-  private connectToDatabase() {
-    mongoose.connect(MONGO_URI);
+  private async connectToDatabase() {
+    try {
+      // this.dataSource = new DataSource(AppDataSource);
+      await this.dataSource.initialize();
+      console.log("Connected to the database");
+    } catch (error) {
+      console.error("Error connecting to the database: ", error);
+    }
   }
 
   public listen() {

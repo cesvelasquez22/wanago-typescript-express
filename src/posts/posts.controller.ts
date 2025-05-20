@@ -1,21 +1,17 @@
 import { NextFunction, Request, Response, Router } from 'express';
-import {isValidObjectId} from 'mongoose';
 
-import Post from './post.interface';
 import Controller from '../interfaces/controller.interface';
 
-import postModel from './post.model';
 import NotFoundException from '../exceptions/NotFoundException';
-import InvalidObjectIdException from '../exceptions/InvalidObjectIdException';
 import validationMiddleware from '../middleware/validation.middleware';
 import CreatePostDto from './post.dto';
-import authMiddleware from '../middleware/auth.middleware';
-import RequestWithUser from 'interfaces/requestWithUser.interface';
+import Post from './post.entity';
+import AppDataSource from '../data-source';
 
 class PostsController implements Controller {
   public path = '/posts';
   public router = Router();
-  private post = postModel;
+  private postRepository = AppDataSource.getRepository(Post);
  
   constructor() {
     this.initializeRoutes();
@@ -25,77 +21,54 @@ class PostsController implements Controller {
     this.router.get(this.path, this.getAllPosts);
     this.router.get(`${this.path}/:id`, this.getPostById);
 
-    this.router.all(`${this.path}/*`, authMiddleware)
-               .patch(`${this.path}/:id`, authMiddleware, validationMiddleware(CreatePostDto, { skipMissingProperties: true }), this.modifyPost)
-               .delete(`${this.path}/:id`, authMiddleware, this.deletePost)
-               .post(this.path, authMiddleware, validationMiddleware(CreatePostDto), this.createPost);
+    this.router.all(`${this.path}/*`)
+               .patch(`${this.path}/:id`, validationMiddleware(CreatePostDto, { skipMissingProperties: true }), this.modifyPost)
+               .delete(`${this.path}/:id`, this.deletePost)
+               .post(this.path, validationMiddleware(CreatePostDto), this.createPost);
   }
  
-  getAllPosts = (request: Request, response: Response) => {
-    this.post.find().populate(
-      'author',
-      '-password'
-    ).then(posts => {
-      response.send(posts);
-    });
+  getAllPosts = async (request: Request, response: Response) => {
+    const posts = await this.postRepository.find();
+    response.send(posts);
   }
  
-  createPost = async (request: RequestWithUser, response: Response, next: NextFunction) => {
+  createPost = async (request: Request, response: Response, next: NextFunction) => {
     const postData: Post = request.body;
-    const createdPost = new this.post({
-      ...postData,
-      author: request.user?._id,
-    });
-    const savedPost = await createdPost.save();
-    await savedPost.populate('author', '-password');
-    response.status(201).send(savedPost);
+    const newPost = this.postRepository.create(postData);
+    await this.postRepository.save(newPost);
+    response.status(201).send(newPost);
   }
 
-  getPostById = (request: Request, response: Response, next: NextFunction) => {
-    const id = request.params.id;
-    if (!isValidObjectId(id)) {
-      next(new InvalidObjectIdException(id));
-      return;
+  getPostById = async (request: Request, response: Response, next: NextFunction) => {
+    const id = Number(request.params.id);
+    const post = await this.postRepository.findOne({ where: {id} });
+    if (post) {
+      response.status(200).send(post);
+    } else {
+      next(new NotFoundException(id));
     }
-    this.post.findById(id).then((post) => {
-      if (post) {
-        response.send(post);
-      } else {
-        next(new NotFoundException(id));
-      }
-    });
   }
 
-  modifyPost = (request: Request, response: Response, next: NextFunction) => {
-    const id = request.params.id;
-    if (!isValidObjectId(id)) {
-      next(new InvalidObjectIdException(id));
-      return;
-    }
+  modifyPost = async (request: Request, response: Response, next: NextFunction) => {
+    const id = Number(request.params.id);
     const postData: Post = request.body;
-    this.post.findByIdAndUpdate(id, postData, { new: true })
-      .then(updatedPost => {
-        if (updatedPost) {
-          response.send(updatedPost);
-        } else {
-          next(new NotFoundException(id));
-        }
-      });
+    await this.postRepository.update(id, postData);
+    const updatedPost = await this.postRepository.findOneBy({ id });
+    if (updatedPost) {
+      response.status(200).send(updatedPost);
+    } else {
+      next(new NotFoundException(id));
     }
+  }
 
-  deletePost = (request: Request, response: Response, next: NextFunction) => {
-    const id = request.params.id;
-    if (!isValidObjectId(id)) {
-      next(new InvalidObjectIdException(id));
-      return;
+  deletePost = async (request: Request, response: Response, next: NextFunction) => {
+    const id = Number(request.params.id);
+    const deleteResponse = await this.postRepository.delete(id);
+    if (deleteResponse.raw[1]) {
+      response.sendStatus(204)
+    } else {
+      next(new NotFoundException(id));
     }
-    this.post.findByIdAndDelete(id).then(hasDeleted => {
-      if (hasDeleted) {
-        response.sendStatus(200);
-      } else {
-        next(new NotFoundException(id));
-      }
-    });
   }
 }
  
