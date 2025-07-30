@@ -1,14 +1,17 @@
 import express, { Application } from "express";
-
+import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 
 import config from "./config";
 const { HOST } = config;
 
+import Controller from "./interfaces/controller.interface";
+
+
 import AppDataSource from "./data-source";
 
-import Controller from "./interfaces/controller.interface";
 import { DataSource } from "typeorm";
+import errorMiddleware from "./middleware/error.middleware";
 
 class App {
   public app: Application;
@@ -32,10 +35,11 @@ class App {
 
   private initializeMiddlewares() {
     this.app.use(bodyParser.json());
+    this.app.use(cookieParser());
   }
 
   private initializeErrorHandling() {
-    // this.app.use(errorMiddleware);
+    this.app.use(errorMiddleware);
   }
 
   private initializeControllers(controllers: Controller[]) {
