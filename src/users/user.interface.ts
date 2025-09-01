@@ -4,9 +4,9 @@ interface User {
     email: string;
     password: string | undefined;
     address?: {
-      street: string,
-      city: string,
-      country: string,
+      street: string;
+      city: string;
+      country: string;
     };
   }
    

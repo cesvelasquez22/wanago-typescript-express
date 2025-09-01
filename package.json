@@ -4,6 +4,9 @@
   "main": "server.js",
   "scripts": {
     "dev": "ts-node-dev ./src/server.ts --env-file .env",
+    "lint": "tslint -p tsconfig.json -c tslint.json",
+    "typeorm": "typeorm-ts-node-commonjs",
+    "typeorm:cli": "ts-node ./node_modules/typeorm/cli -d ./src/data-source.ts",
     "build": "tsc"
   },
   "keywords": [],

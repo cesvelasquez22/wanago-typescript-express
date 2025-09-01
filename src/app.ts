@@ -51,7 +51,8 @@ class App {
   private async connectToDatabase() {
     try {
       // this.dataSource = new DataSource(AppDataSource);
-      await this.dataSource.initialize();
+      const connection = await this.dataSource.initialize();
+      await connection.runMigrations();
       console.log("Connected to the database");
     } catch (error) {
       console.error("Error connecting to the database: ", error);
