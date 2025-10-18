@@ -1,29 +1,21 @@
 import { Router, Request, Response, NextFunction } from "express";
 import Controller from "../interfaces/controller.interface";
 
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-
-import config from "../config";
-const { JWT_SECRET } = config;
-
 import AppDataSource from "../data-source";
 import validationMiddleware from "../middleware/validation.middleware";
-import EmailAlreadyExistsException from "../exceptions/EmailAlreadyExistsException";
-import WrongCredentialsException from "../exceptions/WrongCredentialsException";
 
 import LogInDto from "./login.dto";
 import CreateUserDto from "../users/user.dto";
-import { DataStoredInToken, TokenData } from "../interfaces/token.interface";
 
-import User from "../users/user.entity";
 import Blacklist from "./blacklist.entity";
+import AuthenticationService from "./authentication.service";
 
 class AuthenticationController implements Controller {
     public path = '/auth';
     public router = Router();
 
-    private user = AppDataSource.getRepository(User);
+    private authenticationService = new AuthenticationService()
+
     private blacklist = AppDataSource.getRepository(Blacklist);
 
     constructor() {
@@ -37,51 +29,34 @@ class AuthenticationController implements Controller {
     }
 
     private registration = async (request: Request, response: Response, next: NextFunction) => {
-        const userData: CreateUserDto = request.body;
-        const foundUser = await this.user.findOneBy({ email: userData.email });
-        if (foundUser) {
-            next(new EmailAlreadyExistsException(userData.email));
-        } else {
-            const hashedPassword = await bcrypt.hash(userData.password, 10);
-            const newUser = this.user.create({
-                ...userData,
-                password: hashedPassword,
-            });
-            await this.user.save(newUser);
-            // user.password = undefined;
-            const tokenData = this.createToken(newUser);
-            response.cookie('Authorization', tokenData.token, {
-                maxAge: tokenData.expiresIn * 1000, // would expire after 1 hour
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'none',
-            });
-            const { password, ...result } = newUser;
+        try {
+            const userData: CreateUserDto = request.body;
+            const {
+                user,
+                tokenData,
+                cookieOptions
+            } = await this.authenticationService.register(userData);
+            response.cookie('Authorization', tokenData.token, cookieOptions);
+            const {password, ...result} = user;
             response.status(201).send(result);
+        } catch (error) {
+            next(error);
         }
     }
 
     private loggingIn = async (request: Request, response: Response, next: NextFunction) => {
-        const logInData: LogInDto = request.body;
-        const user = await this.user.findOneBy({ email: logInData.email });
-        if (user && user.password) {
-            const isPasswordMatching = await bcrypt.compare(logInData.password, user.password);
-            if (isPasswordMatching) {
-                // user.password = undefined;
-                const tokenData = this.createToken(user);
-                response.cookie('Authorization', tokenData.token, {
-                    maxAge: tokenData.expiresIn * 1000, // would expire after 1 hour
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'none',
-                });
-                const {password, ...result} = user;
-                response.send(result);
-            } else {
-                next(new WrongCredentialsException());
-            }
-        } else {
-            next(new WrongCredentialsException());
+        try {
+            const logInData: LogInDto = request.body;
+            const {
+                user,
+                tokenData,
+                cookieOptions
+            } = await this.authenticationService.login(logInData);
+            response.cookie('Authorization', tokenData.token, cookieOptions);
+            const {password, ...result} = user;
+            response.send(result);
+        } catch (error) {
+            next(error);
         }
     }
 
@@ -101,18 +76,6 @@ class AuthenticationController implements Controller {
         response.setHeader('Clear-Site-Data', '"cookies"');
 
         response.sendStatus(200);
-    }
-
-    private createToken(user: User): TokenData {
-        const expiresIn = 60 * 60; // an hour
-        const secret = JWT_SECRET || 'MY_SUPER_SECRET_KEY';
-        const dataStoredInToken: DataStoredInToken = {
-            id: user.id,
-        };
-        return {
-            expiresIn,
-            token: jwt.sign(dataStoredInToken, secret, { expiresIn }),
-        };
     }
 }
 

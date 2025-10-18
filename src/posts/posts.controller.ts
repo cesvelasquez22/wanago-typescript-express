@@ -55,7 +55,9 @@ class PostsController implements Controller {
     const id = Number(request.params.id);
     const post = await this.postRepository.findOne({ where: {id}, relations: ["categories"] });
     if (post) {
-      response.status(200).send(post);
+      const { author, ...result } = post;
+      const { password, ...userWithoutPassword } = author || {};
+      response.status(200).send({ ...result, author: userWithoutPassword });
     } else {
       next(new NotFoundException(id));
     }
