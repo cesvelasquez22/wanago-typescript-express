@@ -30,12 +30,14 @@ class AuthenticationService {
         await this.user.save(newUser);
         // user.password = undefined;
         const tokenData = this.createToken(newUser);
+        // const cookie = this.createCookie(tokenData);
         const cookieOptions: CookieOptions = {
             maxAge: tokenData.expiresIn * 1000, // would expire after 1 hour
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'none',
         };
+        // return { user: newUser, tokenData, cookie };
         return { user: newUser, tokenData, cookieOptions };
     }
 
@@ -52,13 +54,19 @@ class AuthenticationService {
         }
         // user.password = undefined;
         const tokenData = this.createToken(user);
+        // const cookie = this.createCookie(tokenData);
         const cookieOptions: CookieOptions = {
             maxAge: tokenData.expiresIn * 1000, // would expire after 1 hour
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'none',
         };
+        // return { user, tokenData, cookie };
         return { user, tokenData, cookieOptions };
+    }
+
+    public createCookie(tokenData: TokenData) {
+        return `Authorization=${tokenData.token}; HttpOnly; Max-Age=${tokenData.expiresIn}`;
     }
 
     private createToken(user: User): TokenData {

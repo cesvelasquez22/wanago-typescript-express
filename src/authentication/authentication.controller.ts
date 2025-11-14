@@ -34,9 +34,11 @@ class AuthenticationController implements Controller {
             const {
                 user,
                 tokenData,
+                // cookie
                 cookieOptions
             } = await this.authenticationService.register(userData);
             response.cookie('Authorization', tokenData.token, cookieOptions);
+            // response.setHeader('Set-Cookie', [cookie]);
             const {password, ...result} = user;
             response.status(201).send(result);
         } catch (error) {
@@ -50,9 +52,11 @@ class AuthenticationController implements Controller {
             const {
                 user,
                 tokenData,
+                // cookie
                 cookieOptions
             } = await this.authenticationService.login(logInData);
             response.cookie('Authorization', tokenData.token, cookieOptions);
+            // response.setHeader('Set-Cookie', [cookie]);
             const {password, ...result} = user;
             response.send(result);
         } catch (error) {

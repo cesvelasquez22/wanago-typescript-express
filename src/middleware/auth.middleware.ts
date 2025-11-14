@@ -20,6 +20,9 @@ const userModel = AppDataSource.getRepository(User);
 
 async function authMiddleware(request: RequestWithUser, response: Response, next: NextFunction) {
   const token = request.cookies.Authorization;
+  const tokenFromHeader = request.headers.authorization;
+  console.log('Token from cookie:', token);
+  console.log('Token from header:', tokenFromHeader);
   if (token) {
     const blacklist = await blacklistModel.findOneBy({ token });
     if (blacklist) {
