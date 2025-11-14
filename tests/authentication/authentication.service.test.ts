@@ -4,6 +4,10 @@ jest.mock('../../src/authentication/authentication.service', () => {
     __esModule: true,
     default: jest.fn().mockImplementation(() => ({
       register: async (userData: any) => {
+        const existingEmails = ['john@smith.com'];
+        if (existingEmails.includes(userData.email)) {
+          throw new EmailAlreadyExistsException(userData.email);
+        }
         const token = 'token-abc123';
         const expiresIn = 60 * 60;
         const user = {
@@ -35,6 +39,7 @@ jest.mock('../../src/authentication/authentication.service', () => {
 });
 
 import AuthenticationService from '../../src/authentication/authentication.service';
+import EmailAlreadyExistsException from '../../src/exceptions/EmailAlreadyExistsException';
 
 describe('The AuthenticationService', () => {
   let authenticationService: AuthenticationService;
@@ -54,6 +59,19 @@ describe('The AuthenticationService', () => {
 
     beforeAll(async () => {
       result = await authenticationService.register(userData);
+    });
+
+    describe('if the user email is already taken', () => {
+      const existingUserEmail = {
+        name: 'John Smith',
+        email: 'john@smith.com',
+        password: 'strongPassword123',
+      };  
+      it('should throw an EmailAlreadyExistsException', async () => {
+        await expect(authenticationService.register(existingUserEmail))
+          .rejects
+          .toThrow(EmailAlreadyExistsException);
+      });
     });
 
     it('should return user, tokenData and cookieOptions', () => {
