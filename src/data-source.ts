@@ -18,7 +18,7 @@ const dataSourceOptions: DataSourceOptions = {
   migrations: [
     __dirname + '/../migrations/**/*{.ts,.js}',
   ],
-  synchronize: true,
+  synchronize: NODE_ENV == 'development' ? true : false,
 };
 
 const AppDataSource = new DataSource(dataSourceOptions);
