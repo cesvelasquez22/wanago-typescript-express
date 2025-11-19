@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import Controller from "../interfaces/controller.interface";
 
-import AppDataSource from "../data-source";
+import { AppDataSource } from "../data-source";
 import NotFoundException from "../exceptions/NotFoundException";
 
 import Category from "./category.entity";

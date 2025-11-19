@@ -8,7 +8,10 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "typeorm:cli": "ts-node ./node_modules/typeorm/cli -d ./src/data-source.ts",
     "test": "jest",
-    "build": "tsc"
+    "build": "tsc",
+    "migration:generate": "npm run typeorm -- migration:generate ./src/migrations/$npm_config_name -d ./src/data-source.ts",
+    "migration:run": "npm run typeorm -- migration:run -d ./src/data-source.ts",
+    "migration:revert": "npm run typeorm -- migration:revert -d ./src/data-source.ts"
   },
   "keywords": [],
   "author": "",

@@ -1,4 +1,3 @@
-
 import { DataSource, DataSourceOptions } from 'typeorm';
 
 import config from "./config";
@@ -17,10 +16,9 @@ const dataSourceOptions: DataSourceOptions = {
   ],
   migrations: [
     __dirname + '/../migrations/**/*{.ts,.js}',
+    __dirname + '/../src/migrations/**/*{.ts,.js}'
   ],
   synchronize: NODE_ENV == 'development' ? true : false,
 };
 
-const AppDataSource = new DataSource(dataSourceOptions);
- 
-export default AppDataSource;
+export const AppDataSource = new DataSource(dataSourceOptions);

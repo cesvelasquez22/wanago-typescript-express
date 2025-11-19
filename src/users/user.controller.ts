@@ -4,7 +4,7 @@ import RequestWithUser from "../interfaces/requestWithUser.interface";
 import Post from "../posts/post.entity";
 import NotAuthorizedException from "../exceptions/NotAuthorizedException";
 import authMiddleware from "../middleware/auth.middleware";
-import AppDataSource from "../data-source";
+import { AppDataSource } from "../data-source";
 
 class UserController implements Controller {
     public path = '/users';

@@ -6,7 +6,7 @@ const { JWT_SECRET } = config;
 import EmailAlreadyExistsException from "../exceptions/EmailAlreadyExistsException";
 import WrongCredentialsException from "../exceptions/WrongCredentialsException";
 import CreateUserDto from "users/user.dto";
-import AppDataSource from "../data-source";
+import { AppDataSource } from "../data-source";
 import { DataStoredInToken, TokenData } from "../interfaces/token.interface";
 
 import User from "../users/user.entity";

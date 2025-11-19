@@ -2,7 +2,7 @@ import { NextFunction, Request, Response, Router } from 'express';
 
 import Controller from '../interfaces/controller.interface';
 
-import AppDataSource from '../data-source';
+import { AppDataSource } from '../data-source';
 import RequestWithUser from '../interfaces/requestWithUser.interface';
 import NotFoundException from '../exceptions/NotFoundException';
 import validationMiddleware from '../middleware/validation.middleware';

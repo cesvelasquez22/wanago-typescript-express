@@ -9,7 +9,7 @@ import WrongAuthTokenException from "../exceptions/WrongAuthTokenException";
 import AuthTokenMissingException from "../exceptions/AuthTokenMissingException";
 import SessionExpiredException from "../exceptions/SessionExpiredException";
 
-import AppDataSource from "../data-source";
+import { AppDataSource } from "../data-source";
 
 import RequestWithUser from "../interfaces/requestWithUser.interface";
 import Blacklist from "../authentication/blacklist.entity";
@@ -20,9 +20,6 @@ const userModel = AppDataSource.getRepository(User);
 
 async function authMiddleware(request: RequestWithUser, response: Response, next: NextFunction) {
   const token = request.cookies.Authorization;
-  const tokenFromHeader = request.headers.authorization;
-  console.log('Token from cookie:', token);
-  console.log('Token from header:', tokenFromHeader);
   if (token) {
     const blacklist = await blacklistModel.findOneBy({ token });
     if (blacklist) {

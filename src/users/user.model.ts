@@ -17,3 +17,5 @@ const userSchema = new Schema({
 const userModel = model<User & Document>('User', userSchema);
 
 export default userModel;
+
+export type UserDocument = User & Document;

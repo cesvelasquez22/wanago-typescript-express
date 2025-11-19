@@ -8,7 +8,7 @@ const { HOST } = config;
 import Controller from "./interfaces/controller.interface";
 
 
-import AppDataSource from "./data-source";
+import { AppDataSource } from "./data-source";
 
 import { DataSource } from "typeorm";
 import errorMiddleware from "./middleware/error.middleware";

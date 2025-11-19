@@ -1,6 +1,6 @@
 import { Request, Response, Router } from "express";
 
-import AppDataSource from "../data-source";
+import { AppDataSource } from "../data-source";
 import Controller from "../interfaces/controller.interface";
 
 import Address from "./address.entity";
