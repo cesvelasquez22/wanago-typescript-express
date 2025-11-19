@@ -9,6 +9,9 @@ import CreateUserDto from "../users/user.dto";
 
 import Blacklist from "./blacklist.entity";
 import AuthenticationService from "./authentication.service";
+import RequestWithUser from "../interfaces/requestWithUser.interface";
+import authMiddleware from "../middleware/auth.middleware";
+import TwoFactorAuthenticationDto from "./two-factor-auth.dto";
 
 class AuthenticationController implements Controller {
     public path = '/auth';
@@ -22,10 +25,36 @@ class AuthenticationController implements Controller {
         this.initializeRoutes();
     }
 
-    public initializeRoutes() {
+    public async initializeRoutes() {
         this.router.post(`${this.path}/register`, validationMiddleware(CreateUserDto), this.registration);
         this.router.post(`${this.path}/login`, validationMiddleware(LogInDto), this.loggingIn);
         this.router.post(`${this.path}/logout`, this.loggingOut);
+        this.router.post(`${this.path}/2fa/generate`, authMiddleware, this.generateTwoFactorAuthenticationSecret);
+        this.router.post(`${this.path}/2fa/turn-on`, authMiddleware, validationMiddleware(TwoFactorAuthenticationDto), this.turnOnTwoFactorAuthentication);
+    }
+
+    private generateTwoFactorAuthenticationSecret = async (request: RequestWithUser, response: Response, next: NextFunction) => {
+        try {
+            const user = request.user;
+            const {
+                otpauthUrl,
+                secret
+            } = await this.authenticationService.generateTwoFactorAuthenticationSecret(user?.id);
+            this.authenticationService.generateQRCode(otpauthUrl, response);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private turnOnTwoFactorAuthentication = async (request: RequestWithUser, response: Response, next: NextFunction) => {
+        try {
+            const user = request.user;
+            const { twoFactorAuthenticationCode } = request.body;
+            await this.authenticationService.turnOnTwoFactorAuthentication(user?.id, twoFactorAuthenticationCode);
+            response.sendStatus(200);
+        } catch (error) {
+            next(error);
+        }
     }
 
     private registration = async (request: Request, response: Response, next: NextFunction) => {

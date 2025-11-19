@@ -3,14 +3,19 @@ import jwt from "jsonwebtoken";
 import config from "../config";
 const { JWT_SECRET } = config;
 
+import { authenticator } from 'otplib';
+import * as QRCode from 'qrcode';
+
 import EmailAlreadyExistsException from "../exceptions/EmailAlreadyExistsException";
 import WrongCredentialsException from "../exceptions/WrongCredentialsException";
+import UserNotFoundException from "../exceptions/UserNotFoundException";
+
 import CreateUserDto from "users/user.dto";
 import { AppDataSource } from "../data-source";
 import { DataStoredInToken, TokenData } from "../interfaces/token.interface";
 
 import User from "../users/user.entity";
-import { CookieOptions } from "express";
+import { CookieOptions, Response } from "express";
 import LogInDto from "./login.dto";
 
 class AuthenticationService {
@@ -69,6 +74,43 @@ class AuthenticationService {
         return `Authorization=${tokenData.token}; HttpOnly; Max-Age=${tokenData.expiresIn}`;
     }
 
+    // public async generateTwoFactorAuthenticationSecret(user: User) {
+    public async generateTwoFactorAuthenticationSecret(userId: string | undefined) {
+        const user = await this.user.findOneBy({ id: userId });
+        if (!user) {
+            throw new UserNotFoundException(userId);
+        }
+        const secret = authenticator.generateSecret();
+        const otpauthUrl = authenticator.keyuri(
+            user.email,
+            'MyApp',
+            secret,
+        );
+        user.twoFactorAuthenticationSecret = secret;
+        await this.user.save(user);
+        return {
+            secret,
+            otpauthUrl,
+        };
+    }
+
+    public async turnOnTwoFactorAuthentication(id: string | undefined, twoFactorAuthenticationCode: any) {
+        const user = await this.user.findOneBy({ id });
+        if (!user) {
+            throw new UserNotFoundException(id);
+        }
+        const isCodeValid = await this.isTwoFactorAuthenticationCodeValid(twoFactorAuthenticationCode, user);
+        if (!isCodeValid) {
+            throw new WrongCredentialsException();
+        }
+        user.isTwoFactorAuthenticationEnabled = true;
+        await this.user.save(user);
+    }
+
+    public async generateQRCode(otpauthUrl: string, response: Response) {
+        return QRCode.toFileStream(response, otpauthUrl);
+    }
+
     private createToken(user: User): TokenData {
         const expiresIn = 60 * 60; // an hour
         const secret = JWT_SECRET || 'MY_SUPER_SECRET_KEY';
@@ -79,6 +121,13 @@ class AuthenticationService {
             expiresIn,
             token: jwt.sign(dataStoredInToken, secret, { expiresIn }),
         };
+    }
+
+    private async isTwoFactorAuthenticationCodeValid(twoFactorAuthenticationCode: string, user: User) {
+        return authenticator.verify({
+            token: twoFactorAuthenticationCode,
+            secret: user.twoFactorAuthenticationSecret,
+        });
     }
 }
 

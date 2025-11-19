@@ -16,6 +16,12 @@ class User {
     @Column()
     public password: string;
 
+    @Column({ nullable: true })
+    public twoFactorAuthenticationSecret: string;
+    
+    @Column({ default: false })
+    public isTwoFactorAuthenticationEnabled: boolean;
+
     @OneToOne(() => Address, (address: Address) => address.user, {
         cascade: true,
         eager: true

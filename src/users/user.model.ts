@@ -12,6 +12,8 @@ const userSchema = new Schema({
     email: String,
     name: String,
     password: String,
+    twoFactorAuthenticationSecret: String,
+    isTwoFactorAuthenticationEnabled: { type: Boolean, default: false },
 });
 
 const userModel = model<User & Document>('User', userSchema);
