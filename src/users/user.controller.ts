@@ -17,7 +17,7 @@ class UserController implements Controller {
 
     public async initializeRoutes() {
         // this.router.get(`${this.path}/:id/posts`, authMiddleware, this.getAllPostsByUser);
-        this.router.get(`${this.path}/posts`, authMiddleware, this.getAllPostsByUser);
+        this.router.get(`${this.path}/posts`, authMiddleware(), this.getAllPostsByUser);
     }
 
     private getAllPostsByUser = async (request: RequestWithUser, response: Response, next: NextFunction) => {
@@ -37,8 +37,9 @@ class UserController implements Controller {
                 return post;
             });
             response.send(sanitizedPosts);
+        } else {
+            next(new NotAuthorizedException())
         }
-        next(new NotAuthorizedException())
     }
 }
 

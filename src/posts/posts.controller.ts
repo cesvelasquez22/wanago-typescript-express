@@ -24,10 +24,10 @@ class PostsController implements Controller {
     this.router.get(this.path, this.getAllPosts);
     this.router.get(`${this.path}/:id`, this.getPostById);
 
-    this.router.all(`${this.path}/*`, authMiddleware)
-               .patch(`${this.path}/:id`, authMiddleware, validationMiddleware(CreatePostDto, { skipMissingProperties: true }), this.modifyPost)
-               .delete(`${this.path}/:id`, authMiddleware, this.deletePost)
-               .post(this.path, authMiddleware, validationMiddleware(CreatePostDto), this.createPost);
+    this.router.all(`${this.path}/*`, authMiddleware())
+               .patch(`${this.path}/:id`, authMiddleware(), validationMiddleware(CreatePostDto, { skipMissingProperties: true }), this.modifyPost)
+               .delete(`${this.path}/:id`, authMiddleware(), this.deletePost)
+               .post(this.path, authMiddleware(), validationMiddleware(CreatePostDto), this.createPost);
   }
  
   getAllPosts = async (request: Request, response: Response) => {

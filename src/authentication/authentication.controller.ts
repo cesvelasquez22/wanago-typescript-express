@@ -29,8 +29,9 @@ class AuthenticationController implements Controller {
         this.router.post(`${this.path}/register`, validationMiddleware(CreateUserDto), this.registration);
         this.router.post(`${this.path}/login`, validationMiddleware(LogInDto), this.loggingIn);
         this.router.post(`${this.path}/logout`, this.loggingOut);
-        this.router.post(`${this.path}/2fa/generate`, authMiddleware, this.generateTwoFactorAuthenticationSecret);
-        this.router.post(`${this.path}/2fa/turn-on`, authMiddleware, validationMiddleware(TwoFactorAuthenticationDto), this.turnOnTwoFactorAuthentication);
+        this.router.post(`${this.path}/2fa/generate`, authMiddleware({omitTwoFactorCheck: true}), this.generateTwoFactorAuthenticationSecret);
+        this.router.post(`${this.path}/2fa/turn-on`, authMiddleware({omitTwoFactorCheck: true}), validationMiddleware(TwoFactorAuthenticationDto), this.turnOnTwoFactorAuthentication);
+        this.router.post(`${this.path}/2fa/authenticate`, authMiddleware({omitTwoFactorCheck: true}), validationMiddleware(TwoFactorAuthenticationDto), this.secondFactorAuthentication);
     }
 
     private generateTwoFactorAuthenticationSecret = async (request: RequestWithUser, response: Response, next: NextFunction) => {
@@ -52,6 +53,23 @@ class AuthenticationController implements Controller {
             const { twoFactorAuthenticationCode } = request.body;
             await this.authenticationService.turnOnTwoFactorAuthentication(user?.id, twoFactorAuthenticationCode);
             response.sendStatus(200);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private secondFactorAuthentication = async (request: RequestWithUser, response: Response, next: NextFunction) => {
+        try {
+            const { twoFactorAuthenticationCode } = request.body;
+            const user = request.user;
+            const {
+                tokenData,
+                // cookie
+                cookieOptions
+            } = await this.authenticationService.secondFactorAuthenticate(user?.id, twoFactorAuthenticationCode);
+            response.cookie('Authorization', tokenData.token, cookieOptions);
+            // response.setHeader('Set-Cookie', [cookie]);
+            response.sendStatus(200); 
         } catch (error) {
             next(error);
         }
@@ -86,7 +104,7 @@ class AuthenticationController implements Controller {
             } = await this.authenticationService.login(logInData);
             response.cookie('Authorization', tokenData.token, cookieOptions);
             // response.setHeader('Set-Cookie', [cookie]);
-            const {password, ...result} = user;
+            const {password, twoFactorAuthenticationSecret, ...result} = user;
             response.send(result);
         } catch (error) {
             next(error);

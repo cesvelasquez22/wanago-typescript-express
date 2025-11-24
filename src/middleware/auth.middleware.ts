@@ -1,4 +1,4 @@
-import { NextFunction, Response } from "express";
+import { NextFunction, RequestHandler, Response } from "express";
 import jwt from "jsonwebtoken";
 
 import config from "../config";
@@ -18,29 +18,35 @@ import User from "../users/user.entity";
 const blacklistModel = AppDataSource.getRepository(Blacklist);
 const userModel = AppDataSource.getRepository(User);
 
-async function authMiddleware(request: RequestWithUser, response: Response, next: NextFunction) {
-  const token = request.cookies.Authorization;
-  if (token) {
-    const blacklist = await blacklistModel.findOneBy({ token });
-    if (blacklist) {
-      next(new SessionExpiredException());
-    }
-    const secret = JWT_SECRET || '';
-    try {
-      const verificationResponse = jwt.verify(token, secret) as DataStoredInToken;
-      const id = verificationResponse.id;
-      const user = await userModel.findOneBy({id});
-      if (user) {
-        request.user = user;
-        next();
-      } else {
+function authMiddleware(options: { omitTwoFactorCheck: boolean } = {omitTwoFactorCheck: false}): RequestHandler {
+  return async (request: RequestWithUser, response: Response, next: NextFunction) => {
+    const token = request.cookies.Authorization;
+    if (token) {
+      const blacklist = await blacklistModel.findOneBy({ token });
+      if (blacklist) {
+        next(new SessionExpiredException());
+      }
+      const secret = JWT_SECRET || '';
+      try {
+        const verificationResponse = jwt.verify(token, secret) as DataStoredInToken;
+        const { id, twoFactorAuthenticated } = verificationResponse;
+        const user = await userModel.findOneBy({id});
+        if (user) {
+          if (!options.omitTwoFactorCheck && user.isTwoFactorAuthenticationEnabled && !twoFactorAuthenticated) {
+            return next(new WrongAuthTokenException());
+          } else {
+            request.user = user;
+            next();
+          }
+        } else {
+          next(new WrongAuthTokenException());
+        }
+      } catch (error) {
         next(new WrongAuthTokenException());
       }
-    } catch (error) {
-      next(new WrongAuthTokenException());
+    } else {
+      next(new AuthTokenMissingException());
     }
-  } else {
-    next(new AuthTokenMissingException());
   }
 }
 

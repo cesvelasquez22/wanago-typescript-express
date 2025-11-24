@@ -74,6 +74,26 @@ class AuthenticationService {
         return `Authorization=${tokenData.token}; HttpOnly; Max-Age=${tokenData.expiresIn}`;
     }
 
+    public async secondFactorAuthenticate(id: string | undefined, twoFactorAuthenticationCode: string) {
+        const user = await this.user.findOneBy({ id });
+        if (!user) {
+            throw new UserNotFoundException(id);
+        }
+        const isCodeValid = await this.isTwoFactorAuthenticationCodeValid(twoFactorAuthenticationCode, user);
+        if (!isCodeValid) {
+            throw new WrongCredentialsException();
+        }
+        const options = { twoFactorAuthenticated: true };
+        const tokenData = this.createToken(user, options);
+        const cookieOptions: CookieOptions = {
+            maxAge: tokenData.expiresIn * 1000, // would expire after 1 hour
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'none',
+        };
+        return { tokenData, cookieOptions };
+    }
+
     // public async generateTwoFactorAuthenticationSecret(user: User) {
     public async generateTwoFactorAuthenticationSecret(userId: string | undefined) {
         const user = await this.user.findOneBy({ id: userId });
@@ -111,11 +131,15 @@ class AuthenticationService {
         return QRCode.toFileStream(response, otpauthUrl);
     }
 
-    private createToken(user: User): TokenData {
+    private createToken(
+        user: User,
+        options: { twoFactorAuthenticated: boolean } = { twoFactorAuthenticated: false },
+    ): TokenData {
         const expiresIn = 60 * 60; // an hour
         const secret = JWT_SECRET || 'MY_SUPER_SECRET_KEY';
         const dataStoredInToken: DataStoredInToken = {
             id: user.id,
+            twoFactorAuthenticated: options.twoFactorAuthenticated,
         };
         return {
             expiresIn,
