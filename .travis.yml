@@ -9,3 +9,10 @@ branches:
   only:
     - main
     - develop
+
+# Deploy hook to Render.com
+deploy:
+  provider: script
+  script: "curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{\"serviceId\":\"'$RENDER_SERVICE_ID'\",\"apiKey\":\"'$RENDER_API_KEY'\",\"gitBranch\":\"'$RENDER_GIT_BRANCH'\",\"deployMessage\":\"'$RENDER_DEPLOY_MESSAGE'\"}' https://api.render.com/deploy/srv-d4j22gp5pdvs7394db1g"
+  on:
+    branch: main
