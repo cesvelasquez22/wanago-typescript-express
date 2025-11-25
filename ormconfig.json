@@ -1,0 +1,15 @@
+{
+  "type": "postgres",
+  // ...existing config...
+  "entities": [
+    // When running compiled JS (production), use dist JS files.
+    "dist/**/*.entity.js"
+  ],
+  "migrations": [
+    "dist/migration/*.js"
+  ],
+  // ...existing config...
+  "cli": {
+    "migrationsDir": "src/migrations"
+  }
+}

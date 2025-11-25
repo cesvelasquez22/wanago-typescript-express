@@ -48,15 +48,16 @@ typescript-express-tutorial/
 ## Migrations
 The project uses TypeORM for database migrations. To run migrations, use the following command:
 ```bash
-npm run typeorm:cli migration:run
+npm run migration:run
 ```
-To create a new migration, use:
+To generate a new migration, use:
 ```bash
-npm run typeorm migration:create migrations/[MigrationName]
+npm run migration:generate --name=[MigrationName]
 ```
+
 To revert the last migration, use:
 ```bash
-npm run typeorm:cli migration:revert
+npm run migration:revert
 ```
 
 ## Contributing
