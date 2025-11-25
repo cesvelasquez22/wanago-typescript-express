@@ -19,6 +19,7 @@ const dataSourceOptions: DataSourceOptions = {
     __dirname + '/../src/migrations/**/*{.ts,.js}'
   ],
   synchronize: NODE_ENV == 'development' ? true : false,
+  ssl: NODE_ENV == 'production' || NODE_ENV == 'staging' ? { rejectUnauthorized: false } : false,
 };
 
 export const AppDataSource = new DataSource(dataSourceOptions);

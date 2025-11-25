@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 
 import config from "./config";
-const { HOST } = config;
+const { HOST, NODE_ENV } = config;
 
 import Controller from "./interfaces/controller.interface";
 
@@ -52,7 +52,9 @@ class App {
     try {
       // this.dataSource = new DataSource(AppDataSource);
       const connection = await this.dataSource.initialize();
-      await connection.runMigrations();
+      if (NODE_ENV == 'development') {
+        await connection.runMigrations();
+      }
       console.log("Connected to the database");
     } catch (error) {
       console.error("Error connecting to the database: ", error);
