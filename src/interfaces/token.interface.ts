@@ -6,7 +6,8 @@ interface TokenData {
 }
 
 interface DataStoredInToken {
-  _id: string;
+  id: string;
+  twoFactorAuthenticated: boolean;
 }
 
 export {TokenData, DataStoredInToken};

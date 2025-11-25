@@ -4,7 +4,14 @@
   "main": "server.js",
   "scripts": {
     "dev": "ts-node-dev ./src/server.ts --env-file .env",
-    "build": "tsc"
+    "lint": "tslint -p tsconfig.json -c tslint.json",
+    "typeorm": "typeorm-ts-node-commonjs",
+    "typeorm:cli": "ts-node ./node_modules/typeorm/cli -d ./src/data-source.ts",
+    "test": "jest",
+    "build": "tsc",
+    "migration:generate": "npm run typeorm -- migration:generate ./src/migrations/$npm_config_name -d ./src/data-source.ts",
+    "migration:run": "npm run typeorm -- migration:run -d ./src/data-source.ts",
+    "migration:revert": "npm run typeorm -- migration:revert -d ./src/data-source.ts"
   },
   "keywords": [],
   "author": "",
@@ -20,14 +27,23 @@
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.7.2",
-    "ts-node": "^10.9.2"
+    "otplib": "^12.0.1",
+    "pg": "^8.13.3",
+    "qrcode": "^1.5.4",
+    "reflect-metadata": "^0.2.2",
+    "ts-node": "^10.9.2",
+    "typeorm": "^0.3.20"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.8",
     "@types/node": "^22.7.5",
+    "@types/qrcode": "^1.5.6",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
     "ts-lib": "^0.0.5",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.6.3"

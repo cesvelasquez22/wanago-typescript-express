@@ -1,82 +1,113 @@
 import { Router, Request, Response, NextFunction } from "express";
 import Controller from "../interfaces/controller.interface";
-import userModel from "../users/user.model";
-import validationMiddleware from "../middleware/validation.middleware";
 
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import { AppDataSource } from "../data-source";
+import validationMiddleware from "../middleware/validation.middleware";
 
 import LogInDto from "./login.dto";
 import CreateUserDto from "../users/user.dto";
-import EmailAlreadyExistsException from "../exceptions/EmailAlreadyExistsException";
-import WrongCredentialsException from "../exceptions/WrongCredentialsException";
-import { DataStoredInToken, TokenData } from "../interfaces/token.interface";
-import User from "../users/user.interface";
 
-import config from "../config";
-import blacklistModel from "./blacklist.model";
-const { JWT_SECRET } = config;
+import Blacklist from "./blacklist.entity";
+import AuthenticationService from "./authentication.service";
+import RequestWithUser from "../interfaces/requestWithUser.interface";
+import authMiddleware from "../middleware/auth.middleware";
+import TwoFactorAuthenticationDto from "./two-factor-auth.dto";
 
 class AuthenticationController implements Controller {
     public path = '/auth';
     public router = Router();
 
-    private user = userModel;
-    private blacklist = blacklistModel;
+    private authenticationService = new AuthenticationService()
+
+    private blacklist = AppDataSource.getRepository(Blacklist);
 
     constructor() {
         this.initializeRoutes();
     }
 
-    public initializeRoutes() {
+    public async initializeRoutes() {
         this.router.post(`${this.path}/register`, validationMiddleware(CreateUserDto), this.registration);
         this.router.post(`${this.path}/login`, validationMiddleware(LogInDto), this.loggingIn);
         this.router.post(`${this.path}/logout`, this.loggingOut);
+        this.router.post(`${this.path}/2fa/generate`, authMiddleware({omitTwoFactorCheck: true}), this.generateTwoFactorAuthenticationSecret);
+        this.router.post(`${this.path}/2fa/turn-on`, authMiddleware({omitTwoFactorCheck: true}), validationMiddleware(TwoFactorAuthenticationDto), this.turnOnTwoFactorAuthentication);
+        this.router.post(`${this.path}/2fa/authenticate`, authMiddleware({omitTwoFactorCheck: true}), validationMiddleware(TwoFactorAuthenticationDto), this.secondFactorAuthentication);
+    }
+
+    private generateTwoFactorAuthenticationSecret = async (request: RequestWithUser, response: Response, next: NextFunction) => {
+        try {
+            const user = request.user;
+            const {
+                otpauthUrl,
+                secret
+            } = await this.authenticationService.generateTwoFactorAuthenticationSecret(user?.id);
+            this.authenticationService.generateQRCode(otpauthUrl, response);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private turnOnTwoFactorAuthentication = async (request: RequestWithUser, response: Response, next: NextFunction) => {
+        try {
+            const user = request.user;
+            const { twoFactorAuthenticationCode } = request.body;
+            await this.authenticationService.turnOnTwoFactorAuthentication(user?.id, twoFactorAuthenticationCode);
+            response.sendStatus(200);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private secondFactorAuthentication = async (request: RequestWithUser, response: Response, next: NextFunction) => {
+        try {
+            const { twoFactorAuthenticationCode } = request.body;
+            const user = request.user;
+            const {
+                tokenData,
+                // cookie
+                cookieOptions
+            } = await this.authenticationService.secondFactorAuthenticate(user?.id, twoFactorAuthenticationCode);
+            response.cookie('Authorization', tokenData.token, cookieOptions);
+            // response.setHeader('Set-Cookie', [cookie]);
+            response.sendStatus(200); 
+        } catch (error) {
+            next(error);
+        }
     }
 
     private registration = async (request: Request, response: Response, next: NextFunction) => {
-        const userData: CreateUserDto = request.body;
-        const foundUser = await this.user.findOne({ email: userData.email });
-        if (foundUser) {
-            next(new EmailAlreadyExistsException(userData.email));
-        } else {
-            const hashedPassword = await bcrypt.hash(userData.password, 10);
-            const user = await this.user.create({
-                ...userData,
-                password: hashedPassword,
-            });
-            user.password = undefined;
-            const tokenData = this.createToken(user);
-            response.cookie('Authorization', tokenData.token, {
-                maxAge: tokenData.expiresIn * 1000, // would expire after 1 hour
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'none',
-            });
-            response.status(201).send(user);
+        try {
+            const userData: CreateUserDto = request.body;
+            const {
+                user,
+                tokenData,
+                // cookie
+                cookieOptions
+            } = await this.authenticationService.register(userData);
+            response.cookie('Authorization', tokenData.token, cookieOptions);
+            // response.setHeader('Set-Cookie', [cookie]);
+            const {password, ...result} = user;
+            response.status(201).send(result);
+        } catch (error) {
+            next(error);
         }
     }
 
     private loggingIn = async (request: Request, response: Response, next: NextFunction) => {
-        const logInData: LogInDto = request.body;
-        const user = await this.user.findOne({ email: logInData.email });
-        if (user && user.password) {
-            const isPasswordMatching = await bcrypt.compare(logInData.password, user.password);
-            if (isPasswordMatching) {
-                user.password = undefined;
-                const tokenData = this.createToken(user);
-                response.cookie('Authorization', tokenData.token, {
-                    maxAge: tokenData.expiresIn * 1000, // would expire after 1 hour
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'none',
-                });
-                response.send(user);
-            } else {
-                next(new WrongCredentialsException());
-            }
-        } else {
-            next(new WrongCredentialsException());
+        try {
+            const logInData: LogInDto = request.body;
+            const {
+                user,
+                tokenData,
+                // cookie
+                cookieOptions
+            } = await this.authenticationService.login(logInData);
+            response.cookie('Authorization', tokenData.token, cookieOptions);
+            // response.setHeader('Set-Cookie', [cookie]);
+            const {password, twoFactorAuthenticationSecret, ...result} = user;
+            response.send(result);
+        } catch (error) {
+            next(error);
         }
     }
 
@@ -86,28 +117,16 @@ class AuthenticationController implements Controller {
             response.sendStatus(204);
             return;
         }
-        const exists = await this.blacklist.findOne({ token });
+        const exists = await this.blacklist.findOneBy({ token });
         if (exists) {
             response.sendStatus(204)
             return;
         }
-        const newBlacklist = new this.blacklist({ token });
-        await newBlacklist.save();
+        const newBlacklist = this.blacklist.create({ token });
+        await this.blacklist.save(newBlacklist);
         response.setHeader('Clear-Site-Data', '"cookies"');
 
         response.sendStatus(200);
-    }
-
-    private createToken(user: User): TokenData {
-        const expiresIn = 60 * 60; // an hour
-        const secret = JWT_SECRET;
-        const dataStoredInToken: DataStoredInToken = {
-            _id: user._id,
-        };
-        return {
-            expiresIn,
-            token: jwt.sign(dataStoredInToken, secret, { expiresIn }),
-        };
     }
 }
 
